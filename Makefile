@@ -2,7 +2,9 @@ SERVER_CONFIG = server/config/config.yaml
 RESOLV_FILE  = /tmp/test_resolv.conf
 BACKUP_FILE  = /tmp/test_resolv.conf.bak
 
-.PHONY: build test run-server run-client clean docker-build docker-up
+PROTO_FILE = proto/dns.proto
+
+.PHONY: build test run-server run-client proto clean docker-build docker-up
 
 build:
 	go build ./...
@@ -16,5 +18,8 @@ run-server:
 run-client:
 	go run ./client/cmd/client $(CMD)
 	
+proto:
+	protoc --go_out=. --go_opt=module=dns-manager --go-grpc_out=. --go-grpc_opt=module=dns-manager $(PROTO_FILE)
+
 clean:
 	rm -f $(RESOLV_FILE) $(BACKUP_FILE)
