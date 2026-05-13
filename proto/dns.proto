@@ -1,0 +1,30 @@
+syntax = "proto3";
+package dns;
+option go_package = "dns-manager/proto/dns";
+
+service DnsService {
+  rpc AddDnsServer(AddDnsServerRequest) returns (DnsResponse);
+  rpc RemoveDnsServer(RemoveDnsServerRequest) returns (DnsResponse);
+  rpc ListDnsServers(ListDnsServersRequest) returns (ListDnsServersResponse);
+}
+
+message AddDnsServerRequest {
+  string address = 1;
+}
+
+message RemoveDnsServerRequest {
+  string address = 1;
+}
+
+message ListDnsServersRequest {}
+
+message DnsResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ListDnsServersResponse {
+  bool success = 1;
+  string error = 2;
+  repeated string servers = 3;
+}
