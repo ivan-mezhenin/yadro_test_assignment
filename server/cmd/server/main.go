@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"dns-manager/proto/dns"
 	"dns-manager/server/config"
@@ -57,6 +60,15 @@ func main() {
 
 	s := grpc.NewServer()
 	dns.RegisterDnsServiceServer(s, h)
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		<-ctx.Done()
+		slog.Info("shutting down gracefully...")
+		s.GracefulStop()
+	}()
 
 	slog.Info("starting gRPC server", "port", cfg.GRPC.Port)
 	if err := s.Serve(lis); err != nil {
