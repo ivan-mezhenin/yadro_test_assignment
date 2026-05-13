@@ -1,0 +1,3 @@
+grpc:
+  address: "localhost:50051"
+  timeout: 5
