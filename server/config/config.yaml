@@ -1,0 +1,10 @@
+grpc:
+  port: 50051
+
+server:
+  resolv_conf: "/etc/resolv.conf"
+  backup_path: "/etc/resolv.conf.bak"
+
+logger:
+  level: "info"
+  debug: false
