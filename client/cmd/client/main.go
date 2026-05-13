@@ -41,7 +41,7 @@ func runAdd(serverAddr string, timeout time.Duration) {
 
 	args := fs.Args()
 	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "usage: dnsctl add <ip> [--server addr]\n")
+		fmt.Fprintf(os.Stderr, "usage: go run ./client/cmd/client add <ip> [--server addr]\n")
 		os.Exit(1)
 	}
 
@@ -68,7 +68,7 @@ func runRemove(serverAddr string, timeout time.Duration) {
 
 	args := fs.Args()
 	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "usage: dnsctl remove <ip> [--server addr]\n")
+		fmt.Fprintf(os.Stderr, "usage: go run ./client/cmd/client remove <ip> [--server addr]\n")
 		os.Exit(1)
 	}
 
@@ -127,7 +127,7 @@ Options:
   --server addr  gRPC server address (default: localhost:50051)
 
 Examples:
-  dnsctl add 8.8.8.8
-  dnsctl remove 8.8.8.8
-   dnsctl list`)
+  go run ./client/cmd/client add 8.8.8.8
+  go run ./client/cmd/client remove 8.8.8.8
+  go run ./client/cmd/client list`)
 }
