@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"dns-manager/server/internal/adapter/resolver"
@@ -27,7 +28,10 @@ func TestAdd(t *testing.T) {
 	if err := r.Add(ctx, "8.8.8.8"); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	servers, _ := r.List(ctx)
+	servers, err := r.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(servers) != 2 || servers[1] != "8.8.8.8" {
 		t.Fatalf("expected [1.1.1.1 8.8.8.8], got %v", servers)
 	}
@@ -59,7 +63,10 @@ func TestRemove(t *testing.T) {
 	if err := r.Remove(ctx, "1.1.1.1"); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	servers, _ := r.List(ctx)
+	servers, err := r.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(servers) != 1 || servers[0] != "8.8.8.8" {
 		t.Fatalf("expected [8.8.8.8], got %v", servers)
 	}
@@ -138,12 +145,51 @@ func TestParseSkipsComments(t *testing.T) {
 	}
 }
 
+func TestParseSkipsEmptyLines(t *testing.T) {
+	content := "\n\nnameserver 8.8.8.8\n\n"
+	path := writeTempFile(t, content)
+	r := resolver.New(path)
+
+	servers, err := r.List(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(servers) != 1 || servers[0] != "8.8.8.8" {
+		t.Fatalf("expected [8.8.8.8], got %v", servers)
+	}
+}
+
+func TestPreservesNonNameserverLines(t *testing.T) {
+	content := "search example.com\nnameserver 1.1.1.1\noptions timeout:2\n"
+	path := writeTempFile(t, content)
+	r := resolver.New(path)
+
+	if err := r.Add(context.Background(), "8.8.8.8"); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := string(data)
+	if !strings.Contains(result, "search example.com") {
+		t.Fatal("search directive was lost")
+	}
+	if !strings.Contains(result, "options timeout:2") {
+		t.Fatal("options directive was lost")
+	}
+}
+
 func TestFullWorkflow(t *testing.T) {
 	path := writeTempFile(t, "")
 	r := resolver.New(path)
 	ctx := context.Background()
 
-	servers, _ := r.List(ctx)
+	servers, err := r.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(servers) != 0 {
 		t.Fatalf("expected empty, got %v", servers)
 	}
@@ -155,7 +201,10 @@ func TestFullWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	servers, _ = r.List(ctx)
+	servers, err = r.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(servers) != 2 {
 		t.Fatalf("expected 2, got %v", servers)
 	}
@@ -163,7 +212,10 @@ func TestFullWorkflow(t *testing.T) {
 	if err := r.Remove(ctx, "8.8.8.8"); err != nil {
 		t.Fatal(err)
 	}
-	servers, _ = r.List(ctx)
+	servers, err = r.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(servers) != 1 || servers[0] != "1.1.1.1" {
 		t.Fatalf("expected [1.1.1.1], got %v", servers)
 	}
