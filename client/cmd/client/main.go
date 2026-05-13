@@ -4,41 +4,37 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"dns-manager/client/config"
 	grpcClient "dns-manager/client/internal/adapter/grpc"
 )
 
 func main() {
-	var configPath string
-	flag.StringVar(&configPath, "config", "config.yaml", "config file path")
-	flag.Parse()
-
-	cfg := config.MustLoad(configPath)
+	cfg := config.MustLoad("client/config/config.yaml")
 
 	if len(os.Args) < 2 {
 		printUsage()
-		os.Exit(1)
+		return
 	}
 
-	cmd := os.Args[1]
-	switch cmd {
+	switch os.Args[1] {
 	case "add":
-		runAdd(cfg.GRPC.Address)
+		runAdd(cfg.GRPC.Address, time.Duration(cfg.GRPC.Timeout)*time.Second)
 	case "remove":
-		runRemove(cfg.GRPC.Address)
+		runRemove(cfg.GRPC.Address, time.Duration(cfg.GRPC.Timeout)*time.Second)
 	case "list":
-		runList(cfg.GRPC.Address)
+		runList(cfg.GRPC.Address, time.Duration(cfg.GRPC.Timeout)*time.Second)
 	case "help", "--help", "-h":
 		printUsage()
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", os.Args[1])
 		printUsage()
 		os.Exit(1)
 	}
 }
 
-func runAdd(serverAddr string) {
+func runAdd(serverAddr string, timeout time.Duration) {
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
 	server := fs.String("server", serverAddr, "gRPC server address")
 	fs.Parse(os.Args[2:])
@@ -49,7 +45,7 @@ func runAdd(serverAddr string) {
 		os.Exit(1)
 	}
 
-	client, err := grpcClient.NewClient(*server)
+	client, err := grpcClient.NewClient(*server, timeout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
 		os.Exit(1)
@@ -65,7 +61,7 @@ func runAdd(serverAddr string) {
 	}
 }
 
-func runRemove(serverAddr string) {
+func runRemove(serverAddr string, timeout time.Duration) {
 	fs := flag.NewFlagSet("remove", flag.ExitOnError)
 	server := fs.String("server", serverAddr, "gRPC server address")
 	fs.Parse(os.Args[2:])
@@ -76,7 +72,7 @@ func runRemove(serverAddr string) {
 		os.Exit(1)
 	}
 
-	client, err := grpcClient.NewClient(*server)
+	client, err := grpcClient.NewClient(*server, timeout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
 		os.Exit(1)
@@ -92,12 +88,12 @@ func runRemove(serverAddr string) {
 	}
 }
 
-func runList(serverAddr string) {
+func runList(serverAddr string, timeout time.Duration) {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	server := fs.String("server", serverAddr, "gRPC server address")
 	fs.Parse(os.Args[2:])
 
-	client, err := grpcClient.NewClient(*server)
+	client, err := grpcClient.NewClient(*server, timeout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
 		os.Exit(1)
@@ -128,6 +124,10 @@ Commands:
   help           Show this help
 
 Options:
-  --config path  Config file path (default: config.yaml)
-  --server addr  gRPC server address (default: from config)`)
+  --server addr  gRPC server address (default: localhost:50051)
+
+Examples:
+  dnsctl add 8.8.8.8
+  dnsctl remove 8.8.8.8
+   dnsctl list`)
 }

@@ -12,11 +12,12 @@ import (
 )
 
 type Client struct {
-	conn   *grpc.ClientConn
-	client pb.DnsServiceClient
+	conn    *grpc.ClientConn
+	client  pb.DnsServiceClient
+	timeout time.Duration
 }
 
-func NewClient(addr string) (*Client, error) {
+func NewClient(addr string, timeout time.Duration) (*Client, error) {
 	conn, err := grpc.NewClient(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -24,8 +25,9 @@ func NewClient(addr string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		conn:   conn,
-		client: pb.NewDnsServiceClient(conn),
+		conn:    conn,
+		client:  pb.NewDnsServiceClient(conn),
+		timeout: timeout,
 	}, nil
 }
 
@@ -34,7 +36,7 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Add(address string) (bool, string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	_, err := c.client.AddDnsServer(ctx, &pb.AddDnsServerRequest{Address: address})
@@ -48,7 +50,7 @@ func (c *Client) Add(address string) (bool, string) {
 }
 
 func (c *Client) Remove(address string) (bool, string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	_, err := c.client.RemoveDnsServer(ctx, &pb.RemoveDnsServerRequest{Address: address})
@@ -62,7 +64,7 @@ func (c *Client) Remove(address string) (bool, string) {
 }
 
 func (c *Client) List() (bool, string, []string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	resp, err := c.client.ListDnsServers(ctx, &pb.ListDnsServersRequest{})
